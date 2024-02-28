@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Woodcutting Tycoon</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css">
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background-color: #f0f0f0;
+    padding-top: 50px;
+  }
+
+  #game {
+    max-width: 600px;
+    margin: 0 auto;
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  h1 {
+    font-size: 36px;
+    text-align: center;
+    margin-bottom: 20px;
+  }
+
+  p {
+    font-size: 18px;
+    margin-bottom: 10px;
+  }
+
+  button {
+    font-size: 16px;
+    margin-top: 10px;
+  }
+</style>
+</head>
+<body>
+<div id="game" class="section">
+  <h1 class="title">Woodcutting Tycoon</h1>
+  <p>Wood: <span id="wood">0</span></p>
+  <p>Woodcutter Level: <span id="woodcutterLevel">1</span></p>
+  <p>Auto Woodcutters: <span id="autoWoodcutters">0</span></p>
+  <button id="cutWoodBtn" class="button is-primary">Cut Wood</button>
+  <button id="upgradeBtn" class="button is-info">Upgrade Woodcutter (+1 Wood/cut)</button>
+  <button id="buyAutoWoodcutterBtn" class="button is-success">Buy Auto Woodcutter</button>
+</div>
+
+<script src="savetek.js"></script>
+<script>
+  // Initialize SaveTek
+  SaveTek.init();
+
+  // Initialize game variables
+  let wood = 0;
+  let woodcutterLevel = 1;
+  let autoWoodcutters = 0;
+  let woodPerCut = 1;
+  let lastActiveTime = new Date();
+
+  // Load saved data
+  if (SaveTek.hasData('wood')) {
+    wood = SaveTek.getData('wood');
+    updateWoodDisplay();
+  }
+  if (SaveTek.hasData('woodcutterLevel')) {
+    woodcutterLevel = SaveTek.getData('woodcutterLevel');
+    updateWoodcutterLevelDisplay();
+  }
+  if (SaveTek.hasData('autoWoodcutters')) {
+    autoWoodcutters = SaveTek.getData('autoWoodcutters');
+    updateAutoWoodcuttersDisplay();
+    startAutoWoodcutters();
+  }
+  if (SaveTek.hasData('lastActiveTime')) {
+    lastActiveTime = new Date(SaveTek.getData('lastActiveTime'));
+  }
+
+  // Event listener for cutting wood manually
+  document.getElementById('cutWoodBtn').addEventListener('click', () => {
+    wood += woodPerCut;
+    updateWoodDisplay();
+    SaveTek.saveData('wood', wood);
+    updateLastActiveTime();
+  });
+
+  // Event listener for upgrading woodcutter
+  document.getElementById('upgradeBtn').addEventListener('click', () => {
+    const upgradeCost = calculateUpgradeCost();
+    if (wood >= upgradeCost) {
+      wood -= upgradeCost;
+      woodcutterLevel++;
+      woodPerCut++;
+      updateWoodDisplay();
+      updateWoodcutterLevelDisplay();
+      SaveTek.saveData('wood', wood);
+      SaveTek.saveData('woodcutterLevel', woodcutterLevel);
+      updateLastActiveTime();
+    } else {
+      alert("You don't have enough wood to upgrade the woodcutter!");
+    }
+  });
+
+  // Event listener for buying auto woodcutter
+  document.getElementById('buyAutoWoodcutterBtn').addEventListener('click', () => {
+    const autoWoodcutterCost = calculateAutoWoodcutterCost();
+    if (wood >= autoWoodcutterCost) {
+      wood -= autoWoodcutterCost;
+      autoWoodcutters++;
+      updateWoodDisplay();
+      updateAutoWoodcuttersDisplay();
+      startAutoWoodcutters();
+      SaveTek.saveData('wood', wood);
+      SaveTek.saveData('autoWoodcutters', autoWoodcutters);
+      updateLastActiveTime();
+    } else {
+      alert("You don't have enough wood to buy an auto woodcutter!");
+    }
+  });
+
+  // Function to update wood display
+  function updateWoodDisplay() {
+    document.getElementById('wood').textContent = wood;
+  }
+
+  // Function to update woodcutter level display
+  function updateWoodcutterLevelDisplay() {
+    document.getElementById('woodcutterLevel').textContent = woodcutterLevel;
+  }
+
+  // Function to update auto woodcutters display
+  function updateAutoWoodcuttersDisplay() {
+    document.getElementById('autoWoodcutters').textContent = autoWoodcutters;
+  }
+
+  // Function to calculate the cost of upgrading the woodcutter
+  function calculateUpgradeCost() {
+    return woodcutterLevel * 10; // Just an example cost function
+  }
+
+  // Function to calculate the cost of buying an auto woodcutter
+  function calculateAutoWoodcutterCost() {
+    return autoWoodcutters * 50; // Just an example cost function
+  }
+
+  // Function to start auto woodcutters
+  function startAutoWoodcutters() {
+    setInterval(() => {
+      wood += autoWoodcutters * woodPerCut;
+      updateWoodDisplay();
+      SaveTek.saveData('wood', wood);
+      updateLastActiveTime();
+    }, 1000);
+  }
+
+  // Function to update last active time
+  function updateLastActiveTime() {
+    lastActiveTime = new Date();
+    SaveTek.saveData('lastActiveTime', lastActiveTime.toISOString());
+  }
+
+  // Function to calculate wood earned during offline time
+  function calculateOfflineWood() {
+    const currentTime = new Date();
+    const offlineTimeInSeconds = (currentTime - lastActiveTime) / 1000;
+    const offlineWood = autoWoodcutters * woodPerCut * offlineTimeInSeconds;
+    return Math.floor(offlineWood);
+  }
+
+  // Calculate and add offline wood on page load
+  const offlineWood = calculateOfflineWood();
+  if (offlineWood > 0) {
+    wood += offlineWood;
+    updateWoodDisplay();
+    SaveTek.saveData('wood', wood);
+    updateLastActiveTime();
+  }
+</script>
+</body>
+</html>
